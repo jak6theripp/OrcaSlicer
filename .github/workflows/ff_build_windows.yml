@@ -1,0 +1,31 @@
+# Fork-only: Windows x64 installer build for the Creator 5 Pro fork.
+# Kept in its own file (upstream's build_all.yml untouched) so rebasing onto
+# new upstream tags never conflicts here. Reuses upstream's build chain:
+# build_check_cache -> build_deps -> build_orca (NSIS installer + portable zip).
+name: FF build Windows
+
+on:
+  push:
+    branches:
+      - ff-main
+      - 'ff/**'
+  workflow_dispatch:
+    inputs:
+      build-deps-only:
+        description: 'Only build dependencies (bypasses caching)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_windows:
+    name: Build Windows x64
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: windows-latest
+      arch: x64
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+    secrets: inherit
