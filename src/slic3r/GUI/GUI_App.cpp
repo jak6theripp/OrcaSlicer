@@ -262,7 +262,7 @@ bool is_associate_files(std::wstring extend)
     wchar_t app_path[MAX_PATH];
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
-    std::wstring prog_id             = L" Orca.Slicer.1";
+    std::wstring prog_id             = L" Orca.Slicer.C5P.1" /* FF fork: own ProgID */;
     std::wstring reg_base            = L"Software\\Classes";
     std::wstring reg_extension       = reg_base + L"\\." + extend;
 
@@ -940,7 +940,8 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
-            this->check_new_version_sf();
+            // FF fork: upstream release prompts would point at stock Orca; updates come from rebasing.
+            // this->check_new_version_sf();
             const auto cloud_provider = get_printer_cloud_provider();
             if (is_user_login(cloud_provider) && !app_config->get_stealth_mode()) {
               // this->check_privacy_version(0);
@@ -2378,7 +2379,7 @@ void GUI_App::init_webview_runtime()
 void GUI_App::init_app_config()
 {
 	// Profiles for the alpha are stored into the PrusaSlicer-alpha directory to not mix with the current release.
-    SetAppName(SLIC3R_APP_KEY);
+    SetAppName(FF_APP_ID); // FF fork: own data dir (%APPDATA%\OrcaSlicer-C5P)
 //	SetAppName(SLIC3R_APP_KEY "-alpha");
 //  SetAppName(SLIC3R_APP_KEY "-beta");
 //	SetAppDisplayName(SLIC3R_APP_NAME);
@@ -2910,7 +2911,8 @@ bool GUI_App::on_init_inner()
             associate_files(L"step");
             associate_files(L"stp");
         }
-        associate_url(L"orcaslicer");
+        // FF fork: leave orcaslicer:// links to the installed stock OrcaSlicer.
+        // associate_url(L"orcaslicer");
 
         if (app_config->get("associate_gcode") == "true")
             associate_files(L"gcode");
@@ -8106,7 +8108,8 @@ void GUI_App::open_preferences(size_t open_on_tab, const std::string& highlight_
                     associate_files(L"step");
                     associate_files(L"stp");
                 }
-                associate_url(L"orcaslicer");
+                // FF fork: leave orcaslicer:// links to the installed stock OrcaSlicer.
+        // associate_url(L"orcaslicer");
             }
             else {
                 if (app_config->get("associate_gcode") == "true")
@@ -9290,7 +9293,7 @@ void GUI_App::associate_files(std::wstring extend)
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
     std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
-    std::wstring prog_id = L" Orca.Slicer.1";
+    std::wstring prog_id = L" Orca.Slicer.C5P.1" /* FF fork: own ProgID */;
     std::wstring prog_desc = L"OrcaSlicer";
     std::wstring prog_command = prog_path + L" \"%1\"";
     std::wstring reg_base = L"Software\\Classes";
@@ -9317,7 +9320,7 @@ void GUI_App::disassociate_files(std::wstring extend)
     ::GetModuleFileNameW(nullptr, app_path, sizeof(app_path));
 
     std::wstring prog_path = L"\"" + std::wstring(app_path) + L"\"";
-    std::wstring prog_id = L" Orca.Slicer.1";
+    std::wstring prog_id = L" Orca.Slicer.C5P.1" /* FF fork: own ProgID */;
     std::wstring prog_desc = L"OrcaSlicer";
     std::wstring prog_command = prog_path + L" \"%1\"";
     std::wstring reg_base = L"Software\\Classes";

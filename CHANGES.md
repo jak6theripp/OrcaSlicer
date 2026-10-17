@@ -6,3 +6,4 @@ To move to a new upstream tag: `git fetch upstream --tags && git rebase --onto <
 | Change | Files | Why |
 |---|---|---|
 | Windows x64 CI build | `.github/workflows/ff_build_windows.yml` (new) | Installer without a local compiler; separate file so upstream workflows stay untouched. |
+| Side-by-side identity `OrcaSlicer-C5P` | `version.inc` (`FF_APP_ID`), `libslic3r_version.h.in`, `CMakeLists.txt` (CPack name, file name, install dir, uninstall registry key, Start menu name), `GUI_App.cpp` (data dir, ProgID `Orca.Slicer.C5P.1`, no `orcaslicer://` registration, no upstream update prompt) | Never touches stock Orca's install, `%APPDATA%\OrcaSlicer` settings or links. `SLIC3R_APP_KEY` is unchanged on purpose: it also names translation catalogs, icons and 3MF metadata. |

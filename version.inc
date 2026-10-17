@@ -3,6 +3,8 @@
 
 set(SLIC3R_APP_NAME "OrcaSlicer")
 set(SLIC3R_APP_KEY "OrcaSlicer")
+# FF fork: own data dir, installer and registry identity, so it installs beside stock Orca and Flash Studio.
+set(FF_APP_ID "OrcaSlicer-C5P")
 
 if(NOT DEFINED BBL_INTERNAL_TESTING)
 set(BBL_INTERNAL_TESTING "0")
