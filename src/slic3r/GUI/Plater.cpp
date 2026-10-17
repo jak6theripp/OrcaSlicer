@@ -6412,7 +6412,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
-                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
+                            // FF fork: "ff_keep_3mf_settings" keeps every saved value (Flash Studio projects).
+                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version,
+                                                             !wxGetApp().app_config->get_bool("ff_keep_3mf_settings"));
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
