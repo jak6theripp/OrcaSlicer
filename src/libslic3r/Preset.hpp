@@ -594,7 +594,10 @@ public:
         // Select the preset after loading?
         LoadAndSelect                select = LoadAndSelect::Always,
         const Semver                file_version = Semver(),
-        const std::string           filament_id = std::string());
+        const std::string           filament_id = std::string(),
+        // FF fork: false keeps every value from the file instead of resetting the keys
+        // missing from different_settings_list to the same-named installed system preset.
+        bool                        rebase_on_system = true);
 
     // Save the preset under a new name. If the name is different from the old one,
     // a new preset is stored into the list of presets.

@@ -2491,7 +2491,8 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
     // Select the preset after loading?
     LoadAndSelect                select,
     const Semver                file_version,
-    const std::string           filament_id)
+    const std::string           filament_id,
+    bool                        rebase_on_system)
 {
     // Load the preset over a default preset, so that the missing fields are filled in from the default preset.
     DynamicPrintConfig cfg(this->default_preset_for(combined_config).config);
@@ -2519,7 +2520,12 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
     std::set<std::string> *key_set1 = nullptr, *key_set2 = nullptr;
     Preset::get_extruder_names_and_keysets(m_type, extruder_id_name, extruder_variant_name, &key_set1, &key_set2);
 
-    if (!inherits.empty() && (different_settings_list.size() > 0)) {
+    // FF fork: a file from another Orca fork (Flash Studio) can share preset names with ours but
+    // not their values, so rebasing would silently swap its settings for ours.
+    if (!rebase_on_system) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": keeping all values of preset %1% from %2%") % original_name % path;
+    }
+    else if (!inherits.empty() && (different_settings_list.size() > 0)) {
         auto iter = this->find_preset_internal(inherits);
         if (iter == m_presets.end() || iter->name != inherits)
             iter = this->find_preset_renamed(inherits);

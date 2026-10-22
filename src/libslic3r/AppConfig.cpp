@@ -517,6 +517,11 @@ void AppConfig::set_defaults()
         set("max_recent_count", "18");
     }
 
+    // FF fork: keep all settings saved in a 3MF (see PresetCollection::load_external_preset).
+    if (get("ff_keep_3mf_settings").empty()) {
+        set_bool("ff_keep_3mf_settings", true);
+    }
+
     if (get("recent_models").empty()) {
         set("recent_models", "0");
     }

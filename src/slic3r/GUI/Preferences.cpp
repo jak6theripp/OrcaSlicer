@@ -1583,6 +1583,13 @@ void PreferencesDialog::create_items()
     auto item_project_load     = create_item_combobox(_L("Load behaviour"), _L("Should printer/filament/process settings be loaded when opening a 3MF file?"), SETTING_PROJECT_LOAD_BEHAVIOUR, projectLoadSettingsBehaviourOptions, projectLoadSettingsConfigOptions);
     g_sizer->Add(item_project_load);
 
+    // FF fork
+    auto item_keep_3mf_settings = create_item_checkbox(_L("Keep all settings saved in 3MF files"),
+        _L("Use every printer, filament and process value stored in the project, even when a built-in preset has the same name. "
+           "Turn off for stock behaviour: values the file does not mark as changed are taken from the built-in preset."),
+        "ff_keep_3mf_settings");
+    g_sizer->Add(item_keep_3mf_settings);
+
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically to help with restoring from an occasional crash."));
     g_sizer->Add(item_backup); 
 
