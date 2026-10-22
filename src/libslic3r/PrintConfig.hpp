@@ -1617,6 +1617,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
 
     // BBS: wipe tower is only used for priming
     ((ConfigOptionFloat,              prime_volume))
+    // FF fork: tool changer without a prime tower re-primes each change into infill (ToolOrdering.cpp).
+    ((ConfigOptionBool,               prime_into_infill_without_tower))
     ((ConfigOptionFloats,             flush_multiplier))
     ((ConfigOptionFloat,              z_offset))
     // BBS: project filaments

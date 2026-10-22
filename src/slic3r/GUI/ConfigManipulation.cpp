@@ -888,10 +888,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
 
-    toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
+    // FF fork: re-prime into infill needs separate toolheads and no tower.
+    const size_t nozzle_count = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->size();
+    const bool can_reprime_into_infill = !have_prime_tower && !bSEMM && nozzle_count > 1;
+    toggle_field("prime_into_infill_without_tower", can_reprime_into_infill);
+    const bool reprime_into_infill = can_reprime_into_infill && config->opt_bool("prime_into_infill_without_tower");
 
-    for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
-        toggle_field(el, have_prime_tower);
+    toggle_line("prime_volume", (have_prime_tower && (!purge_in_primetower || !bSEMM)) || reprime_into_infill);
+
+    for (auto el : {"flush_into_infill", "flush_into_objects"})
+        toggle_field(el, have_prime_tower || reprime_into_infill);
+    toggle_field("flush_into_support", have_prime_tower);
 
     bool have_avoid_crossing_perimeters = config->opt_bool("reduce_crossing_wall");
     toggle_line("max_travel_detour_distance", have_avoid_crossing_perimeters);

@@ -1149,6 +1149,7 @@ static std::vector<std::string> s_Preset_print_options{
     "prime_tower_brim_width",
     "prime_tower_skip_points",
     "prime_volume",
+    "prime_into_infill_without_tower", // FF fork
     "prime_tower_infill_gap",
     "prime_tower_flat_ironing",
     "enable_tower_interface_features",

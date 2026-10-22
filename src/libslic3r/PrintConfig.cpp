@@ -6857,6 +6857,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(45.));
 
+    // FF fork
+    def = this->add("prime_into_infill_without_tower", coBool);
+    def->category = L("Flush options");
+    def->label = L("Re-prime into infill without prime tower");
+    def->tooltip = L("For printers with several separate toolheads, with the prime tower off. After each tool change, "
+        "the new tool re-primes \"Prime volume\" by printing sparse infill first: infill of the same material in objects "
+        "with \"Flush into objects' infill\", then objects with \"Flush into this object\". An island's own infill may "
+        "then be printed before its walls. What cannot be placed is skipped and reported as a warning. "
+        "Has no effect with the prime tower on, or on single-extruder multi-material printers.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("wipe_tower_x", coFloats);
     //def->label = L("Position X");
     //def->tooltip = L("X coordinate of the left front corner of a wipe tower.");

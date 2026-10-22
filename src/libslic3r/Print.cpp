@@ -342,6 +342,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_no_sparse_layers"
             || opt_key == "flush_volumes_matrix"
             || opt_key == "prime_volume"
+            || opt_key == "prime_into_infill_without_tower" // FF fork
             || opt_key == "flush_into_infill"
             || opt_key == "flush_into_support"
             || opt_key == "initial_layer_infill_speed"
@@ -2431,6 +2432,40 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (m_tool_ordering.empty() || m_tool_ordering.last_extruder() == unsigned(-1))
                 throw Slic3r::SlicingError("The print is empty. The model is not printable with current print settings.");
 
+            // FF fork: without a tower, each tool change re-primes prime_volume into infill.
+            if (reprime_into_infill_active(m_config)) {
+                const float volume     = float(m_config.prime_volume.value);
+                unsigned int current   = m_tool_ordering.first_extruder();
+                size_t       changes   = 0;
+                size_t       short_n   = 0;
+                float        short_sum = 0.f;
+                std::string  examples;
+                for (LayerTools &layer_tools : m_tool_ordering.layer_tools()) {
+                    for (unsigned int extruder : layer_tools.extruders) {
+                        if (extruder == current)
+                            continue;
+                        if (current != (unsigned int) -1) {
+                            ++changes;
+                            const float missing = layer_tools.wiping_extrusions().mark_reprime_extrusions(*this, extruder, volume);
+                            if (missing > 0.f) {
+                                ++short_n;
+                                short_sum += missing;
+                                if (short_n <= 3)
+                                    examples += (boost::format("\n  Z %1$.2f mm: T%2% -> T%3%, %4$.0f of %5$.0f mm³ not placed") %
+                                                 layer_tools.print_z % current % extruder % missing % volume).str();
+                            }
+                        }
+                        current = extruder;
+                    }
+                }
+                BOOST_LOG_TRIVIAL(info) << "FF re-prime into infill: " << changes << " tool changes, " << short_n << " short by "
+                                        << short_sum << " mm3 in total";
+                if (short_n > 0)
+                    this->active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL,
+                        (boost::format(L("Re-prime into infill: %1% of %2% tool changes could not be fully re-primed "
+                                         "(%3$.0f mm³ in total).%4%\nAdd an object with \"Flush into this object\", "
+                                         "or turn the prime tower on.")) % short_n % changes % short_sum % examples).str());
+            }
         }
         this->set_done(psWipeTower);
     }

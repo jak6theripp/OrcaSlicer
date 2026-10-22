@@ -670,6 +670,10 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
     std::vector<int> firstLayerExtruders;
     firstLayerExtruders.clear();
 
+    // FF fork: when re-priming into infill without a tower, a flushable region still keeps its own tool on
+    // the layer. Stock drops it (any tool may print it), which with no tower can hand PLA infill to a PETG tool.
+    const bool keep_own_extruders = m_print_config_ptr != nullptr && reprime_into_infill_active(*m_print_config_ptr);
+
     // Collect the object extruders.
     for (auto layer : object.layers()) {
         LayerTools &layer_tools = this->tools_for_layer(layer->print_z);
@@ -695,7 +699,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                             something_nonoverriddable = true;
                 }
 
-                if (something_nonoverriddable){
+                if (something_nonoverriddable || keep_own_extruders){
                		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
                     if (extruder_override == 0 && region.config().wall_loops.value > 1)
                         layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
@@ -731,7 +735,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                 }
             }
 
-            if (something_nonoverriddable || !m_print_config_ptr) {
+            if (something_nonoverriddable || !m_print_config_ptr || keep_own_extruders) {
             	if (extruder_override == 0) {
                     if (has_internal_solid)
                         layer_tools.extruders.emplace_back(region.config().internal_solid_filament_id);
@@ -1757,6 +1761,68 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
 }
 
 
+
+// FF fork: a tool changer without a prime tower re-primes the new tool by printing infill first.
+// Unlike mark_wiping_extrusions, ordinary objects' sparse infill comes first (it is printed anyway, so it costs
+// nothing), objects dedicated to purging second. Only extrusions whose own material and wall material match the
+// new tool's are taken, so no infill bonds to a foreign material. An island whose walls come next with this same
+// tool may have its own infill printed before its walls.
+float WipingExtrusions::mark_reprime_extrusions(const Print& print, unsigned int new_extruder, float volume_to_prime)
+{
+    const LayerTools&  lt     = *m_layer_tools;
+    const PrintConfig& config = print.config();
+    if (!this->something_overridable || volume_to_prime <= 0.f || config.filament_soluble.get_at(new_extruder) ||
+        config.filament_is_support.get_at(new_extruder))
+        return std::max(0.f, volume_to_prime);
+
+    const std::string &material      = config.filament_type.get_at(new_extruder);
+    auto               same_material = [&](unsigned int extruder) { return config.filament_type.get_at(extruder) == material; };
+
+    // Fixed order between objects, so the same project always slices the same way.
+    ConstPrintObjectPtrs objects = print.objects().vector();
+    std::sort(objects.begin(), objects.end(), [](const PrintObject *a, const PrintObject *b) { return a->id() < b->id(); });
+
+    for (const bool dedicated : {false, true}) {
+        for (const PrintObject *object : objects) {
+            if (object->config().flush_into_objects.value != dedicated || (!dedicated && !object->config().flush_into_infill))
+                continue;
+            const Layer *this_layer = object->get_layer_at_printz(lt.print_z, EPSILON);
+            if (this_layer == nullptr)
+                continue;
+            const size_t num_of_copies = object->instances().size();
+
+            for (unsigned int copy = 0; copy < num_of_copies; ++copy) {
+                for (const LayerRegion *layerm : this_layer->regions()) {
+                    const PrintRegion &region = layerm->region();
+                    auto take = [&](const ExtrusionEntity *ee) {
+                        auto *eec = dynamic_cast<const ExtrusionEntityCollection *>(ee);
+                        if (eec == nullptr || !is_overriddable(*eec, config, *object, region) || is_entity_overridden(eec, object, copy) ||
+                            !same_material(lt.extruder(*eec, region)))
+                            return false;
+                        set_extruder_override(eec, object, copy, new_extruder, num_of_copies);
+                        return (volume_to_prime -= float(eec->total_volume())) <= 0.f;
+                    };
+
+                    if (dedicated) {
+                        // A purge object is taken whole, walls first, as stock does with flush_into_objects.
+                        for (const ExtrusionEntity *ee : layerm->perimeters.entities)
+                            if (take(ee))
+                                return 0.f;
+                    } else {
+                        // Its walls must be printed already, or come next with this same tool.
+                        const unsigned int wall = lt.wall_extruder_id(region);
+                        if (!same_material(wall) || (wall != new_extruder && !lt.is_extruder_order(wall, new_extruder)))
+                            continue;
+                    }
+                    for (const ExtrusionEntity *ee : layerm->fills.entities)
+                        if (take(ee))
+                            return 0.f;
+                }
+            }
+        }
+    }
+    return volume_to_prime;
+}
 
 // Called after all toolchanges on a layer were mark_infill_overridden. There might still be overridable entities,
 // that were not actually overridden. If they are part of a dedicated object, printing them with the extruder

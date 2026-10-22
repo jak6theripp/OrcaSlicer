@@ -20,6 +20,14 @@ class LayerTools;
 namespace CustomGCode { struct Item; }
 class PrintRegion;
 
+// FF fork: a printer with separate toolheads and no prime tower re-primes each tool change into infill
+// (PrintConfig::prime_into_infill_without_tower). Off, everything below behaves as stock.
+inline bool reprime_into_infill_active(const PrintConfig &config)
+{
+    return config.prime_into_infill_without_tower.value && !config.enable_prime_tower.value &&
+           !config.single_extruder_multi_material.value && config.nozzle_diameter.size() > 1;
+}
+
 // Object of this class holds information about whether an extrusion is printed immediately
 // after a toolchange (as part of infill/perimeter wiping) or not. One extrusion can be a part
 // of several copies - this has to be taken into account.
@@ -43,6 +51,10 @@ public:
     float mark_wiping_extrusions(const Print& print, unsigned int old_extruder, unsigned int new_extruder, float volume_to_wipe);
 
     void ensure_perimeters_infills_order(const Print& print);
+
+    // FF fork: re-primes new_extruder after a tool change into infill when there is no prime tower
+    // (see reprime_into_infill_active). Returns the volume that found no place.
+    float mark_reprime_extrusions(const Print& print, unsigned int new_extruder, float volume_to_prime);
 
     bool is_overriddable(const ExtrusionEntityCollection& ee, const PrintConfig& print_config, const PrintObject& object, const PrintRegion& region) const;
     bool is_overriddable_and_mark(const ExtrusionEntityCollection& ee, const PrintConfig& print_config, const PrintObject& object, const PrintRegion& region) {
